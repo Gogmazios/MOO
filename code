@@ -1,0 +1,77 @@
+"$player:call/name any any any";
+if (player in $admins)
+  player:tell("%WAdmins see all players' real names.  But here's the output anyway:%w");
+  player:tell("");
+endif
+verbstr = $utils:capitalize(verb);
+if (!args)
+  player:tell("%W" + verbstr + " who what?%w");
+else
+  targmatch = this:match(args[1], player.location.contents);
+  if (!targmatch)
+    player:tell("%WThere is no such player here.%w");
+  else
+    if (length(targmatch) > 1)
+      player:tell("%WMultiple matches, please be more specific.%w");
+    else
+      target = targmatch[1];
+      "Game designers and admins are not included in known_players.";
+      nope = {@$architect:descendants(), @$admins};
+      if (target in nope)
+        player:tell("%WGame designers and administrators are always known by their real names.%w");
+      elseif (target == player)
+        player:tell("%WHaving an identity crisis?%w");
+      elseif (!target:is_a($animate))
+        player:tell("%WThere is no such player here.%w");
+      else
+        gend = #0.(target.gender)[3];
+        if (length(args) == 1)
+          player:tell("%W" + verbstr + " " + gend + " what?%w");
+        else
+          "We now have TARGET and NAME.";
+          name = tostr(args[2]);
+          oldname = $utils:capitalize(target:known_to(player)[2]);
+          known = player.known_players;
+          objref = target in known;
+          "Is TARGET already known by NAME?";
+          if ((objref) && (known[objref + 1] == name))
+            player:tell("%WYou already know " + gend + " by that name.%w");
+          else
+            "We now know for certain that values are going to change.";
+            "Let's make sure this name isn't going to conflict with either";
+            "admin names or other known player names.";
+            pool = {@player.known_players, "me", "here"};
+            for each in (nope)
+              pool = {@pool, each:known_to(player)[2]};
+            endfor
+            if (name in pool)
+              "Another player is already known by this name.";
+              "In case TARGET leaves the room, let's at least set up";
+              "a placeholder name that can be changed later.";
+              inuse = name;
+              len = length(name);
+              inc = 1;
+              while (name in pool)
+                name = name[1..len] + tostr(inc);
+                inc = inc + 1;
+              endwhile
+              player:tell("%WThe name " + inuse + " was already in use, so " + name + " has been used instead.");
+              player:tell("To change this value, use the rename command.");
+            endif
+            if (objref)
+              "Delete TARGET's old obj num and name, if necessary.";
+              player.known_players = listdelete(player.known_players, objref);
+              player.known_players = listdelete(player.known_players, objref);
+            endif
+            "Add new obj and name.";
+            player.known_players = listappend(player.known_players, target);
+            player.known_players = listappend(player.known_players, name);
+            "Just to make sure it worked...";
+            newstr = target:known_to(player)[2];
+            player:tell("%G" + oldname + " is now known as " + newstr + ".%w");
+          endif
+        endif
+      endif
+    endif
+  endif
+endif
